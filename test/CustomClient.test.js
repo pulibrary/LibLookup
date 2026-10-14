@@ -4,7 +4,6 @@ import { CustomClient } from '../CustomClient.js';
 describe('Custom Client', () => {
   const connectURL = "https://hastings.net/"
   const jsonURL = connectURL + "catalog.json?q="
-  const xmlURL = connectURL + "catalog.xml?q="
   const catalogURL = connectURL + "catalog?q="
   const result_count = 1
   const title = "The Library Catalog Interfaces 'They' Don't Want You to Know About"

@@ -63,7 +63,7 @@ export class Z3950Client {
             this.sendToClient(initRequest)
         })
         
-        this.client.on('data', (data) => {
+        this.client.on('data', (data) => {            
             this.dataBuffer = Buffer.concat([this.dataBuffer, Buffer.from(data)])
             var response = new asn1js.fromBER(this.dataBuffer)
             if(response.offset == -1) { //message not complete, awaiting more data
@@ -78,7 +78,7 @@ export class Z3950Client {
                 console.log(respCode)
                 switch(respCode) {
                     case 21: //initResponse  
-                        console.log(`Connected to ${this.config.host} on port ${this.config.port}`);
+                        console.log(`Connected to Z39.50 service`);
                         this.inSession = true
                         break;
                     case 23: //searchResponse
@@ -217,7 +217,7 @@ export class Z3950Client {
                 this.sendToClient(searchRequest)
                 var interval = setInterval(() => {
                     if(!this.awaitingResponse) {
-                        clearInterval(interval)
+                        clearInterval(interval)                                
                         var expectedResultCount = this.calculateResultSetSize(startRecord,maximumRecords)
                         this.getRecords(startRecord,expectedResultCount).then(recs => {
                             resolve(recs)
@@ -229,7 +229,7 @@ export class Z3950Client {
         })
     }
 
-    getRecords(recno = 1, count= 1) {
+    getRecords(recno = 1, count = 1) {
         return new Promise((resolve) => {
             var allRecords = []
             var startRecord = recno

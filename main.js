@@ -412,7 +412,7 @@ const createWindow = () => {
                           }
                         }
                       }
-                      if(includeWCH && z3950client.elementSet == "F") {
+                      if(includeWCH && z3950client.elementSet == "F" && fullRecordStart < latestResultCount) {
                         z3950client.elementSet = "FA"
                       } else {
                         resultsStream.next(displayResults)

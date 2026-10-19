@@ -111,7 +111,7 @@ export class Z3950Client {
                                 }
                             }
                             else if(respBody[i].idBlock.tagNumber == 130) {
-                                if(respBody[i].valueBlock.value[2].valueBlock.value.includes("out of bounds for byte")) {
+                                if(respBody[i].valueBlock.value[2].valueBlock.value.includes("out of bounds")) {
                                     this.latestError = "wcholdingslimit"
                                 }
                             }
@@ -156,11 +156,6 @@ export class Z3950Client {
         
     }
 
-    reconnect() {
-        console.log('Reconnecting...')
-        this.connect(true)
-    }
-
     disconnect() {
         this.inSession = false
         console.log(`Closing connection`);
@@ -173,19 +168,19 @@ export class Z3950Client {
         this.client.write(new Uint8Array(request.toBER()))
     }
 
-    query(queryString, startRecord = 1, maximumRecords = 50) {   
+    query(queryString, startRecord, maximumRecords) {   
         console.log(`Sending query '${queryString}'`)
         this.latestError = ""
         return new Promise((resolve) => {            
             if(this.isConnected()) {
-                this.searchAndPresent(queryString,startRecord,maximumRecords,this.config).then(recs => {
+                this.searchAndPresent(queryString,startRecord,maximumRecords).then(recs => {
                     resolve({numberOfRecords: this.latestResultCount, records: recs})        
                 })
             } else {
                 this.connect(true)
                 var interval = setInterval(() => {
                     if(this.isConnected()) {
-                        this.searchAndPresent(queryString,startRecord,maximumRecords,this.config).then(recs => {
+                        this.searchAndPresent(queryString,startRecord,maximumRecords).then(recs => {
                             resolve({numberOfRecords: this.latestResultCount, records: recs})        
                         })  
                         clearInterval(interval)                
@@ -203,7 +198,7 @@ export class Z3950Client {
         }
     }
 
-    searchAndPresent(queryString,startRecord = 1,maximumRecords = 50) {
+    searchAndPresent(queryString,startRecord,maximumRecords) {
         return new Promise((resolve) => {            
             if(this.latestQuery == queryString && this.isConnected()) {
                 var expectedResultCount = this.calculateResultSetSize(startRecord,maximumRecords)
@@ -229,7 +224,7 @@ export class Z3950Client {
         })
     }
 
-    getRecords(recno = 1, count = 1) {
+    getRecords(recno, count) {
         return new Promise((resolve) => {
             var allRecords = []
             var startRecord = recno
@@ -343,7 +338,7 @@ export class Z3950Client {
 
         var zQuery = new Z3950Query(queryString, this.config)   
     
-        console.log(JSON.stringify(zQuery,null,2))
+        //console.log(JSON.stringify(zQuery,null,2))
 
         var req = this.createASN1object({id: 22, value: [
             {id: 13, value: 0}, //Small set lower bound
@@ -364,7 +359,7 @@ export class Z3950Client {
         return req
     }
 
-    createPresentRequest(resultSetId, recno = 1, count = 1) {
+    createPresentRequest(resultSetId, recno, count) {
         var encoder = new TextEncoder()
         var marcObj = new asn1js.ObjectIdentifier({value: USMARC_OBJID})
         var req = this.createASN1object({id: 24, value: [

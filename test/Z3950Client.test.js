@@ -24,7 +24,8 @@ const mockInitResponse = new Uint8Array([181,102,131,2,0,224,132,3,0,193,2,133,4
     102,52,100,50,54,52,98,49,50,97,102,99,56,54,49,101,52,56,99,102,100,55,102,55,
     101,57,56,101,98,100,57,53,102,99,55,54,55,57,100,99])
 
-const mockSearchResponse = new Uint8Array([183,18,151,1,1,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
+const mockSearchResponseSingle = new Uint8Array([183,18,151,1,1,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
+const mockSearchResponseMulti = new Uint8Array([183,18,151,1,2,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
 
 const mockPresentResponse = new Uint8Array([185,128,152,1,1,153,1,2,155,1,0,188,128,48,128,
     128,3,78,65,70,161,128,161,128,40,128,6,7,42,134,72,206,19,5,10,129,130,1,49,48,48,51,48,
@@ -40,14 +41,29 @@ const mockPresentResponse = new Uint8Array([185,128,152,1,1,153,1,2,155,1,0,188,
     98,116,46,112,46,32,40,74,46,32,70,114,97,110,99,105,115,32,72,117,100,115,111,110,41,30,29,0,0,0,
     0,0,0,0,0,0,0,0,0])
 
+const mockWorldCatError = new Uint8Array([185,129,206,152,1,0,153,1,0,155,1,5,191,129,2,129,192,6,7,42,
+    134,72,206,19,4,1,2,1,100,26,129,177,85,110,101,120,112,101,99,116,101,100,32,101,120,99,101,112,116,
+    105,111,110,32,105,110,32,90,103,97,116,101,72,111,111,107,67,111,109,109,97,110,100,72,97,110,100,108,
+    101,114,46,99,111,110,118,101,114,116,66,101,114,82,101,115,112,111,110,115,101,82,101,99,111,114,100,
+    115,84,111,77,65,82,67,32,111,110,32,101,108,101,109,101,110,116,32,49,32,105,110,32,116,104,101,32,114,
+    101,99,111,114,100,32,65,114,114,97,121,76,105,115,116,44,32,32,97,114,114,97,121,99,111,112,121,58,32,
+    100,101,115,116,105,110,97,116,105,111,110,32,105,110,100,101,120,32,45,49,32,111,117,116,32,111,102,32,
+    98,111,117,110,100,115,32,102,111,114,32,99,104,97,114,91,50,52,93])
+
+const mockBogusResponse = new Uint8Array([187,18,151,1,1,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
+
 const mockMARCTest = "Rabshakeh"
 
+const mockErrorResponse = "wcholdingslimit"
+
 const queryString = 'author = "Rabshekah" AND language = "heb" AND subject = "Sennacherib"'
+
+let testID;
 
 describe('Z39.50 Client', () => {
     let createConnectionSpy;
     let mockSocket;
-    let client;
+    let client;    
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -57,9 +73,18 @@ describe('Z39.50 Client', () => {
         mockSocket.write = jest.fn((data) => { 
             mockSocket.latestData = data
             if(data.length == toByteArray(client.createSearchRequest(config.database,1,queryString)).length) {
-                mockSocket.emit('data', mockSearchResponse)
+                if(testID == "MULTI") {
+                    mockSocket.emit('data', mockSearchResponseMulti)
+                } else {
+                    mockSocket.emit('data', mockSearchResponseSingle)
+                }
             } else if(data.length == toByteArray(client.createPresentRequest(1,1,1)).length) {
-                mockSocket.emit('data', mockPresentResponse)
+                if(testID == "ERROR") {
+                    mockSocket.emit('data', mockWorldCatError)
+                } else {
+                    mockSocket.emit('data', mockPresentResponse.slice(0,100))
+                    mockSocket.emit('data', mockPresentResponse.slice(100))
+                }
             }
         });
         mockSocket.end = jest.fn();
@@ -109,6 +134,7 @@ describe('Z39.50 Client', () => {
     })
 
     test('simple query', async() => {
+        testID = "SIMPLE"
         const { username, password, ...configNoCredentials } = config
         client = new Z3950Client(configNoCredentials)
         client.connect()
@@ -117,8 +143,6 @@ describe('Z39.50 Client', () => {
         mockSocket.emit('data', mockInitResponse)
         expect(client.isConnected()).toBe(true)
 
-        const searchRequest = toByteArray(client.createSearchRequest(config.database,1,queryString))
-        expectedLength = searchRequest.length
         const searchResults = await client.query(queryString,1,1)    
         expect(searchResults.numberOfRecords).toBe(1)
         expect(searchResults.records[0]).toContain(mockMARCTest)
@@ -128,4 +152,60 @@ describe('Z39.50 Client', () => {
         expect(client.isConnected()).toBe(false)
 
     })
+
+     test('WorldCat Error', async() => {
+        testID = "ERROR"
+        client = new Z3950Client(config)
+        client.connect()
+        mockSocket.emit('connect')   
+        mockSocket.emit('data', mockInitResponse)
+
+        client.elementSet = "FA"
+        await client.query(queryString,1,1)    
+        expect(client.latestError).toBe(mockErrorResponse)
+
+        //error
+        mockSocket.emit('data',mockBogusResponse)
+        mockSocket.emit('error', {code: "EOTHERERROR"})
+        expect(client.isConnected()).toBe(false)
+
+    })
+
+    test('Multiple pages of results', async() => {
+        testID = "MULTI"
+        client = new Z3950Client(config)
+        client.connect()
+        mockSocket.emit('connect')   
+        mockSocket.emit('data', mockInitResponse)
+        var searchResults = await client.query(queryString,1,1) 
+        expect(searchResults.numberOfRecords).toBe(2)
+        expect(searchResults.records.length).toBe(1)    
+        searchResults = await client.query(queryString,2,1) 
+        expect(searchResults.numberOfRecords).toBe(2)
+        expect(searchResults.records.length).toBe(1)    
+
+        //connection reset
+        mockSocket.emit('error', {code: "ECONNRESET"})
+        expect(client.isConnected()).toBe(false)
+    })
+
+    test('not connected at time of query', async() => {
+        console.log('delayed connection')
+        testID = "MULTI"
+        client = new Z3950Client(config)
+        
+        setTimeout(() => {            
+            mockSocket.emit('connect')   
+            mockSocket.emit('data', mockInitResponse)
+        },1000)
+        
+        searchResults = await client.query(queryString,1,4) 
+        expect(searchResults.numberOfRecords).toBe(2)
+        expect(searchResults.records[0]).toContain(mockMARCTest)
+
+        //disconnect
+        client.disconnect()
+        mockSocket.emit('close')
+        expect(client.isConnected()).toBe(false)
+    },5000)
 })

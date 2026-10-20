@@ -2,7 +2,6 @@
 import { expect, jest, test } from '@jest/globals';
 import { Z3950Client } from '../Z3950Client.js';
 import { EventEmitter } from 'events';
-import asn1js from 'asn1js';
 import net from 'net'
 
 const config = {

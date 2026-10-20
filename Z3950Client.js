@@ -1,5 +1,5 @@
 import net from 'net';
-import asn1js from 'asn1js';
+import * as  asn1js from 'asn1js';
 import { Z3950Query } from './Z3950Query.js';
 
 const MESSAGE_SIZE = 0x4000000

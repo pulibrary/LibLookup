@@ -62,7 +62,7 @@ const defaultResults = [
 
 autoUpdater.autoDownload = false;
 
-const createWindow = () => {  
+const createWindow = async () => {  
   win = new BrowserWindow({
     width: 300,
     height: 500,
@@ -73,7 +73,7 @@ const createWindow = () => {
     }
   })
 
-  loadConfigJSON()
+  await loadConfigJSON()
 
   win.loadFile('config.html').then(() => {
 
@@ -705,7 +705,7 @@ function escapeHtml(text) {
   return text.toString().replace(/[&<>"']/g, (m) => map[m]);
 }
 
-function loadConfigJSON() {
+async function loadConfigJSON() {
   const filePath = path.join(app.getPath('userData'), configFileName); 
   try {   
     const data = fs.readFileSync(filePath)
@@ -718,7 +718,7 @@ function loadConfigJSON() {
         catalogs[catkeys[i]].resultFields = defaultResults
       }
     }
-    menuMap = new MenuMap(catalogs)
+    menuMap = await MenuMap.create(catalogs)
   } catch(error) {
     console.error("Failed to read JSON file:", error)
   }
@@ -779,7 +779,7 @@ ipcMain.handle('load-config-file', async (event, sourceFilePath) => {
   try {
     fs.copyFileSync(sourceFilePath, destinationPath)
     console.log('File was copied to:', destinationPath);
-    loadConfigJSON()
+    await loadConfigJSON()
   } catch(error) {
     console.error('Error copying file:', error.message);
   }

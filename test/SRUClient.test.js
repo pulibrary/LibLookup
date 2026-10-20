@@ -1,7 +1,7 @@
 import { expect, jest, test } from '@jest/globals';
 import { SRUClient } from '../SRUClient.js';
 
-describe('SRU Client', () => {
+describe('Alma SRU Client', () => {
   const baseurl = "https://federation.alma.exlibrisgroup.com/view/sru/87STAR_SHIP"
   const config = {
     baseurl: baseurl

@@ -26,17 +26,26 @@ export class MenuMap {
     
     menuMap = {}
     
-    constructor(catalogList) {
-        Object.entries(catalogList).forEach(async ([catkey,catalogInfo]) => {
-            this.menuMap[catkey] = {}
+    constructor() {
+
+    }
+
+    static async create(catalogList) {
+        var mmObj = new MenuMap
+        const keys = Object.keys(catalogList)
+        const values = Object.values(catalogList)
+        for(var i = 0; i < keys.length; i++) {
+            var catkey = keys[i]
+            var catalogInfo = values[i]
+            mmObj.menuMap[catkey] = {}
             if(Object.hasOwn(catalogInfo,'indexes')) {
-                this.menuMap[catkey] = {"primary": catalogInfo.indexes}
+                mmObj.menuMap[catkey] = {"primary": catalogInfo.indexes}
             } else {
-                this.menuMap[catkey] = {"primary": defaultIndexes}
+                mmObj.menuMap[catkey] = {"primary": defaultIndexes}
             }
             if(catalogInfo.type == "z3950") {
                 if(Object.hasOwn(zIndexes,catkey)) {
-                    this.menuMap[catkey].secondary = zIndexes[catkey]
+                    mmObj.menuMap[catkey].secondary = zIndexes[catkey]
                 }
             } else if(catalogInfo.type == "almasru") {
                 const explainResponse = await fetch(catalogInfo.baseurl + "?version=1.2&operation=explain")
@@ -46,7 +55,7 @@ export class MenuMap {
                 const selectWithNs = xpath.useNamespaces(sruNamespaces)
                 var secondaryIndexes = []
                 var indexes = selectWithNs('//explain:index', explainXML)
-                indexes.forEach(ind => {
+                indexes.forEach(async (ind) => {                  
                     const name = selectWithNs('.//ns:title/text()',ind)[0].nodeValue
                     const prefix = selectWithNs('.//explain:map/explain:name/@set',ind)[0].nodeValue
                     const code = selectWithNs('.//explain:map/explain:name/text()',ind)[0].nodeValue
@@ -61,15 +70,16 @@ export class MenuMap {
                     })
                     secondaryIndexes.push({"name":name,"code":`${prefix}.${code}`,"relators":relatorList})
                 })
-                this.menuMap[catkey].secondary = secondaryIndexes
+                mmObj.menuMap[catkey].secondary = secondaryIndexes
             }
 
             if(Object.hasOwn(catalogInfo,"resultFields")) {
-                this.menuMap[catkey].resultFields = catalogInfo.resultFields
+                mmObj.menuMap[catkey].resultFields = catalogInfo.resultFields
             } else {
-                this.menuMap[catkey].resultFields = []
+                mmObj.menuMap[catkey].resultFields = []
             }
-        })
+        }
+        return mmObj
     }
     getJSON() {
         return JSON.stringify(this.menuMap,null,2)

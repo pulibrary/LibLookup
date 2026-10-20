@@ -50,11 +50,16 @@ const mockWorldCatError = new Uint8Array([185,129,206,152,1,0,153,1,0,155,1,5,19
     100,101,115,116,105,110,97,116,105,111,110,32,105,110,100,101,120,32,45,49,32,111,117,116,32,111,102,32,
     98,111,117,110,100,115,32,102,111,114,32,99,104,97,114,91,50,52,93])
 
+const mockOtherError = new Uint8Array([185,82,152,1,0,153,1,0,155,1,5,191,129,2,69,6,7,42,134,72,206,19,4,1,
+    2,1,13,26,55,82,101,97,100,58,73,110,118,97,108,105,100,32,115,116,97,114,116,80,111,105,110,116,47,110,
+    117,109,82,101,99,115,47,115,101,97,114,99,104,32,80,111,115,116,105,110,103,115,61,50,47,49,47,49,47,49])
+
 const mockBogusResponse = new Uint8Array([187,18,151,1,1,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
 
 const mockMARCTest = "Rabshakeh"
 
-const mockErrorResponse = "wcholdingslimit"
+const mockWCErrorResponse = "wcholdingslimit"
+const mockOtherErrorResponse = "othererror"
 
 const queryString = 'author = "Rabshekah" AND language = "heb" AND subject = "Sennacherib"'
 
@@ -67,36 +72,42 @@ describe('Z39.50 Client', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockSocket = new EventEmitter();
-        mockSocket.latestData = ""
-        mockSocket.setTimeout = jest.fn();
-        mockSocket.write = jest.fn((data) => { 
-            mockSocket.latestData = data
-            if(data.length == toByteArray(client.createSearchRequest(config.database,1,queryString)).length) {
-                if(testID == "MULTI") {
-                    mockSocket.emit('data', mockSearchResponseMulti)
-                } else {
-                    mockSocket.emit('data', mockSearchResponseSingle)
-                }
-            } else if(data.length == toByteArray(client.createPresentRequest(1,1,1)).length) {
-                if(testID == "ERROR") {
-                    mockSocket.emit('data', mockWorldCatError)
-                } else {
-                    mockSocket.emit('data', mockPresentResponse.slice(0,100))
-                    mockSocket.emit('data', mockPresentResponse.slice(100))
-                }
-            }
-        });
-        mockSocket.end = jest.fn();
-        mockSocket.destroy = jest.fn();
-
         createConnectionSpy = jest.spyOn(net, 'createConnection')
             .mockImplementation(({port: port, host: host}) => {
-                mockSocket.remoteAddress = host
-                mockSocket.remotePort = port    
-                mockSocket.readyState = "open"        
-                return mockSocket
-            });
+            mockSocket = new EventEmitter();
+            mockSocket.latestData = ""
+            mockSocket.setTimeout = jest.fn();
+            mockSocket.write = jest.fn((data) => { 
+                mockSocket.latestData = data
+                if(data.length == toByteArray(client.createSearchRequest(config.database,1,queryString)).length) {
+                    if(testID == "MULTI") {
+                        mockSocket.emit('data', mockSearchResponseMulti)
+                    } else {
+                        setTimeout(() => {
+                            mockSocket.emit('data', mockSearchResponseSingle)
+                        },1000)
+                    }
+                } else if(data.length == toByteArray(client.createPresentRequest(1,1,1)).length) {
+                    if(testID == "WCERROR") {
+                        mockSocket.emit('data', mockWorldCatError)
+                    } else if(testID == "OTHERERROR") {
+                        mockSocket.emit('data', mockOtherError)
+                    } else {
+                        mockSocket.emit('data', mockPresentResponse.slice(0,100))
+                        setTimeout(() => {
+                            mockSocket.emit('data', mockPresentResponse.slice(100))
+                        },1000)
+                    }
+                }
+            })
+            mockSocket.end = jest.fn();
+            mockSocket.destroy = jest.fn();
+
+            mockSocket.remoteAddress = host
+            mockSocket.remotePort = port    
+            mockSocket.readyState = "open"        
+            return mockSocket
+        });
     });
 
    function toByteArray(asn1object) {
@@ -154,15 +165,22 @@ describe('Z39.50 Client', () => {
     })
 
      test('WorldCat Error', async() => {
-        testID = "ERROR"
+        testID = "WCERROR"
         client = new Z3950Client(config)
         client.connect()
-        mockSocket.emit('connect')   
+        mockSocket.emit('connect')
+        //empty data   
+        mockSocket.emit('data',null)
+        //legit data
         mockSocket.emit('data', mockInitResponse)
 
         client.elementSet = "FA"
         await client.query(queryString,1,1)    
-        expect(client.latestError).toBe(mockErrorResponse)
+        expect(client.latestError).toBe(mockWCErrorResponse)
+
+        testID = "OTHERERROR"
+        await client.query(queryString,1,1)    
+        expect(client.latestError).toBe(mockOtherErrorResponse)
 
         //error
         mockSocket.emit('data',mockBogusResponse)
@@ -194,7 +212,8 @@ describe('Z39.50 Client', () => {
         testID = "MULTI"
         client = new Z3950Client(config)
         
-        setTimeout(() => {            
+        client.connect()
+        setTimeout(() => {       
             mockSocket.emit('connect')   
             mockSocket.emit('data', mockInitResponse)
         },1000)

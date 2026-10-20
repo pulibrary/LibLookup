@@ -34,6 +34,9 @@ export class Z3950Client {
 
     initiateConnection() {
         console.log(`Connecting to ${this.config.host} on port ${this.config.port}...`)
+        if(this.client) {
+            this.client.destroy()
+        }
         this.client = net.createConnection({ 
                 port: this.config.port, 
                 host: this.config.host,
@@ -63,7 +66,10 @@ export class Z3950Client {
             this.sendToClient(initRequest)
         })
         
-        this.client.on('data', (data) => {            
+        this.client.on('data', (data) => {    
+            if(!data || data == "") {
+                return
+            }
             this.dataBuffer = Buffer.concat([this.dataBuffer, Buffer.from(data)])
             var response = new asn1js.fromBER(this.dataBuffer)
             if(response.offset == -1) { //message not complete, awaiting more data
@@ -71,58 +77,56 @@ export class Z3950Client {
             } 
             //otherwise, new message
             this.dataBuffer = Buffer.alloc(0)
-            if(response.result) {
-                var respCode = response.result.idBlock.tagNumber
-                var respValue = ""
-                var respBody
-                console.log(respCode)
-                switch(respCode) {
-                    case 21: //initResponse  
-                        console.log(`Connected to Z39.50 service`);
-                        this.inSession = true
-                        break;
-                    case 23: //searchResponse
-                        respBody = response.result.valueBlock.value
-                        for(var i = 0; i < respBody.length; i++) {
-                            if(respBody[i].idBlock.tagNumber == 23) {
-                                var numResults = 0
-                                var numResultsArray = respBody[i].valueBlock.valueHexView
-                                for(var j = 0; j < numResultsArray.length; j++) {
-                                    numResults = numResults*256 
-                                    numResults += numResultsArray[j]
-                                }
-                                this.latestResultCount = numResults
+            var respCode = response.result.idBlock.tagNumber
+            var respValue = ""
+            var respBody
+            console.log(respCode)
+            switch(respCode) {
+                case 21: //initResponse  
+                    console.log(`Connected to Z39.50 service`);
+                    this.inSession = true
+                    break;
+                case 23: //searchResponse
+                    respBody = response.result.valueBlock.value
+                    for(var i = 0; i < respBody.length; i++) {
+                        if(respBody[i].idBlock.tagNumber == 23) {
+                            var numResults = 0
+                            var numResultsArray = respBody[i].valueBlock.valueHexView
+                            for(var j = 0; j < numResultsArray.length; j++) {
+                                numResults = numResults*256 
+                                numResults += numResultsArray[j]
+                            }
+                            this.latestResultCount = numResults
+                        }
+                    }
+                    console.log(`Search returned ${this.latestResultCount} record(s)`)
+                    break;
+                case 25: //presentResponse
+                    respBody = response.result.valueBlock.value
+                    for(i = 0; i < respBody.length; i++) {
+                        if(respBody[i].idBlock.tagNumber == 24) {
+                            console.log(respBody[i].valueBlock.valueHexView[0] + " record(s) returned")
+                        } else if(respBody[i].idBlock.tagNumber == 28) {
+                            respValue = ""
+                            var allRecords = respBody[i].valueBlock.value
+                            for(j = 0; j < allRecords.length; j++) {
+                                var rec = allRecords[j].valueBlock.value[1].valueBlock.value[0].valueBlock.value[0].valueBlock.value[1]
+                                respValue += String.fromCodePoint(...rec.valueBlock.valueHexView)
+                            }
+                        } else if(respBody[i].idBlock.tagNumber == 130) {
+                            if(respBody[i].valueBlock.value[2].valueBlock.value.includes("out of bounds")) {
+                                this.latestError = "wcholdingslimit"
+                            } else {
+                                this.latestError = "othererror"
                             }
                         }
-                        console.log(`Search returned ${this.latestResultCount} record(s)`)
-                        break;
-                    case 25: //presentResponse
-                        respBody = response.result.valueBlock.value
-                        for(i = 0; i < respBody.length; i++) {
-                            if(respBody[i].idBlock.tagNumber == 24) {
-                                console.log(respBody[i].valueBlock.valueHexView[0] + " record(s) returned")
-                            }
-                            else if(respBody[i].idBlock.tagNumber == 28) {
-                                respValue = ""
-                                var allRecords = respBody[i].valueBlock.value
-                                for(j = 0; j < allRecords.length; j++) {
-                                    var rec = allRecords[j].valueBlock.value[1].valueBlock.value[0].valueBlock.value[0].valueBlock.value[1]
-                                    respValue += String.fromCodePoint(...rec.valueBlock.valueHexView)
-                                }
-                            }
-                            else if(respBody[i].idBlock.tagNumber == 130) {
-                                if(respBody[i].valueBlock.value[2].valueBlock.value.includes("out of bounds")) {
-                                    this.latestError = "wcholdingslimit"
-                                }
-                            }
-                        }
-                        this.latestResponse = respValue                        
-                        break;
-                    default:
-                        break;
-                }  
-                this.awaitingResponse = false  
-            }                 
+                    }
+                    this.latestResponse = respValue                        
+                    break;
+                default:
+                    break;
+            }  
+            this.awaitingResponse = false                   
         });
         this.client.on('timeout', () => {
             console.log('Socket idle timeout reached. Closing connection.');
@@ -145,15 +149,6 @@ export class Z3950Client {
             }
             this.client.destroy()
         });
-
-        //wait for response from initRequest, return connection status
-        var interval = setInterval(() => {
-            if(!this.awaitingResponse) {
-                clearInterval(interval)
-                return this.isConnected()
-            }
-        },intervalLength)
-        
     }
 
     disconnect() {
@@ -237,29 +232,27 @@ export class Z3950Client {
                     resolve(allRecords)
                     return
                 }
-                if(!this.awaitingResponse && readyForNext) {
-                    console.log(`Retrieving ${expectedResultCount} record(s) starting from ${startRecord}`)
-                    var presentRequest = this.createPresentRequest(this.resultSetId, startRecord, expectedResultCount)
-                    this.sendToClient(presentRequest)
-                    readyForNext = false
-                }
-                else if(!this.awaitingResponse) {    
-                    if(this.latestResponse == "" || this.latestError != "") {
-                        done = true
-                    } else {
-                        var marcRecords = this.latestResponse.split("\x1D")
-                        if(marcRecords[marcRecords.length-1] == "") {
-                            marcRecords.pop()       
-                        } 
-                        allRecords.push(...marcRecords)
-
-                        if(allRecords.length < count) {      
-                            startRecord += marcRecords.length
-                            expectedResultCount -= marcRecords.length
-                        } else {
+                if(!this.awaitingResponse) {
+                    if(readyForNext) {
+                        console.log(`Retrieving ${expectedResultCount} record(s) starting from ${startRecord}`)
+                        var presentRequest = this.createPresentRequest(this.resultSetId, startRecord, expectedResultCount)
+                        this.sendToClient(presentRequest)
+                        readyForNext = false
+                    } else {    
+                        if(this.latestResponse == "" || this.latestError != "") {
                             done = true
+                        } else {
+                            var marcRecords = this.latestResponse.split("\x1D").filter(rec => rec != "")                        
+                            allRecords.push(...marcRecords)
+
+                            if(allRecords.length < count) {      
+                                startRecord += marcRecords.length
+                                expectedResultCount -= marcRecords.length
+                            } else {
+                                done = true
+                            }
+                            readyForNext = true
                         }
-                        readyForNext = true
                     }
                 }     
             },intervalLength)            

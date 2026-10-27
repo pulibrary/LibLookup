@@ -227,7 +227,7 @@ export class Z3950Client {
             var readyForNext = true
             var done = false
             var interval = setInterval(() => {
-                if(done) {
+                if(done || expectedResultCount == 0) {
                     clearInterval(interval)
                     resolve(allRecords)
                     return
@@ -331,7 +331,7 @@ export class Z3950Client {
 
         var zQuery = new Z3950Query(queryString, this.config)   
     
-        //console.log(JSON.stringify(zQuery,null,2))
+        console.log(JSON.stringify(zQuery,null,2))
 
         var req = this.createASN1object({id: 22, value: [
             {id: 13, value: 0}, //Small set lower bound

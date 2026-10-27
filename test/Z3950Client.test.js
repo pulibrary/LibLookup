@@ -25,6 +25,7 @@ const mockInitResponse = new Uint8Array([181,102,131,2,0,224,132,3,0,193,2,133,4
 
 const mockSearchResponseSingle = new Uint8Array([183,18,151,1,1,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
 const mockSearchResponseMulti = new Uint8Array([183,18,151,1,2,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
+const mockSearchResponseZero = new Uint8Array([183,18,151,1,0,152,1,0,153,1,1,150,1,1,154,1,0,155,1,0])
 
 const mockPresentResponse = new Uint8Array([185,128,152,1,1,153,1,2,155,1,0,188,128,48,128,
     128,3,78,65,70,161,128,161,128,40,128,6,7,42,134,72,206,19,5,10,129,130,1,49,48,48,51,48,
@@ -78,9 +79,11 @@ describe('Z39.50 Client', () => {
             mockSocket.setTimeout = jest.fn();
             mockSocket.write = jest.fn((data) => { 
                 mockSocket.latestData = data
-                if(data.length == toByteArray(client.createSearchRequest(config.database,1,queryString)).length) {
+                if(data.length == toByteArray(client.createSearchRequest(config.database,1,queryString)).length) {                    
                     if(testID == "MULTI") {
                         mockSocket.emit('data', mockSearchResponseMulti)
+                    } else if(testID == "ZERO") {
+                        mockSocket.emit('data', mockSearchResponseZero)  
                     } else {
                         setTimeout(() => {
                             mockSocket.emit('data', mockSearchResponseSingle)
@@ -113,7 +116,7 @@ describe('Z39.50 Client', () => {
         return new Uint8Array(asn1object.toBER())
     }
 
-    test('connect, reconnect and disconnect', async() => {
+    test('connect, reconnect, failed search, and disconnect', async() => {
         client = new Z3950Client(config)
         expect(client.config).toEqual(config)
         client.connect()
@@ -136,6 +139,12 @@ describe('Z39.50 Client', () => {
         expect(createConnectionSpy).not.toHaveBeenCalled()
         expect(client.isConnected()).toBe(true)
 
+        //zero results
+        testID = "ZERO"
+        const emptyResults = await client.query(queryString,1,1)
+        expect(emptyResults.numberOfRecords).toBe(0)
+        expect(emptyResults.records.length).toBe(0)
+
         //disconnect
         client.disconnect()
         mockSocket.emit('close')
@@ -144,7 +153,6 @@ describe('Z39.50 Client', () => {
     })
 
     test('simple query', async() => {
-        testID = "SIMPLE"
         const { username, password, ...configNoCredentials } = config
         client = new Z3950Client(configNoCredentials)
         client.connect()
@@ -153,9 +161,11 @@ describe('Z39.50 Client', () => {
         mockSocket.emit('data', mockInitResponse)
         expect(client.isConnected()).toBe(true)
 
+        //single result with delayed response
+        testID = "SIMPLE"
         const searchResults = await client.query(queryString,1,1)    
         expect(searchResults.numberOfRecords).toBe(1)
-        expect(searchResults.records[0]).toContain(mockMARCTest)
+        expect(searchResults.records[0]).toContain(mockMARCTest)        
 
         //timeout
         mockSocket.emit('timeout')
@@ -207,7 +217,6 @@ describe('Z39.50 Client', () => {
     })
 
     test('not connected at time of query', async() => {
-        console.log('delayed connection')
         testID = "MULTI"
         client = new Z3950Client(config)
         

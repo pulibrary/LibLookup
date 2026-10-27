@@ -37,6 +37,7 @@ describe('Z39.50 Query', () => {
   
   test('multi-parameter', () => {
     const inputQueryString = `title = "${title}" OR subject all "${subject}"`
+    const inputQueryStringExact = `title == "${title}" OR subject == "${subject}"`
     const zQuery = new Z3950Query(inputQueryString)
     expect(zQuery.type).toBe("operator");
     expect(zQuery.operator).toBe(1);
@@ -48,6 +49,18 @@ describe('Z39.50 Query', () => {
     expect(zQuery.rightOperand.term).toBe(subject);
     expect(zQuery.rightOperand.attributes).toEqual([
       {type: 1, value: 21}
+    ]);
+
+    const zQueryExact = new Z3950Query(inputQueryStringExact)
+    expect(zQueryExact.leftOperand.attributes).toEqual([
+      {type: 1, value: 4}, 
+      {type: 4, value: 1},  
+      {type: 6, value: 2}
+    ]);
+    expect(zQueryExact.rightOperand.attributes).toEqual([
+      {type: 1, value: 21},
+      {type: 4, value: 1},  
+      {type: 6, value: 2}
     ]);
   });
 

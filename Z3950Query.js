@@ -133,7 +133,9 @@ export class Z3950Query {
             if(Object.hasOwn(relators,relator)) {
                 pqfString += `@attr 2=${relators[relator]} `
             }
-            if(relator == "=") {
+            if(relator == "==") {
+                pqfString += "@attr 4=1 @attr 6=2 "
+            } else if(relator == "=") {
                 pqfString += "@attr 4=1 "
             } else if(this.config?.details?.defaultStructure) {
                 pqfString += `@attr 4=${this.config.details.defaultStructure} `

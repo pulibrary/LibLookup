@@ -28,7 +28,7 @@ const config = {
         ]
     },
     "SFNAF": {
-        "name": "LC Name Authority File",
+        "name": "Starfleet Name Authority File",
         "type": "z3950",
         "indexes": [
             {"name":"Keyword","code":"keyword","relators":["all","="]},

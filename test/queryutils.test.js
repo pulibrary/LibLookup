@@ -1,4 +1,4 @@
-import { tokenize } from '../queryutils.js';
+import { tokenize, explodeTerm } from '../queryutils.js';
 
 describe('Tokenizer used across query classes', () => {
   test('single parameter string', () => {
@@ -18,4 +18,11 @@ describe('Tokenizer used across query classes', () => {
     const queryString = tokens.join(' ')
     expect(tokenize(queryString)).toEqual(tokens);
   });
+
+  test('explode multi-term query', () => {
+    const multiTermQuery = 'recid = "1234|5678"'
+    const explodedQuery = 'recid = "1234" OR recid = "5678"'
+    expect(explodeTerm(multiTermQuery)).toBe(explodedQuery)
+  })
+
 });

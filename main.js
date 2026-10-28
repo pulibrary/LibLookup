@@ -3,6 +3,7 @@ import { Z3950Client } from './Z3950Client.js';
 import { SRUClient } from './SRUClient.js';
 import { CustomClient } from './CustomClient.js';
 import { MenuMap } from './MenuMap.js'
+import { tokenize, explodeTerm } from './queryutils.js'
 import { Marc } from 'marcjs'
 import * as fs from 'node:fs';
 import * as path from 'path';
@@ -137,7 +138,18 @@ const createWindow = async () => {
           var outputDoc = cheerio.load(data.toString())
           var catalog = url.searchParams.get('catalog')
           catalogLink = ""
-          var query = decodeURIComponent(url.searchParams.get('q'))
+          var query = url.searchParams.get('q')
+          if(query !== null) {
+            query = decodeURIComponent(query)
+            const tokens = tokenize(query)
+            query = ""
+            for(var i = 0; i < tokens.length; i += 3) {
+              if(i > 0) {
+                query += " "
+              }
+              query += explodeTerm(tokens.slice(i,i+3).join(" "))
+            }
+          }
           var singleRecord = (url.searchParams.get('singleRecord') == 'true')
           var format = url.searchParams.get('format') || 'html'
           var submittedDisplayFields = url.searchParams.get('displayFields')            

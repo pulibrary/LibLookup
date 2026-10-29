@@ -143,11 +143,14 @@ const createWindow = async () => {
             query = decodeURIComponent(query)
             const tokens = tokenize(query)
             query = ""
-            for(var i = 0; i < tokens.length; i += 3) {
+            for(var i = 0; i < tokens.length;) {
               if(i > 0) {
-                query += " "
+                query += " " + tokens[i] + " " +  explodeTerm(tokens.slice(i+1,i+4).join(" "))
+                i += 4
+              } else {             
+                query += explodeTerm(tokens.slice(i,i+3).join(" "))
+                i += 3
               }
-              query += explodeTerm(tokens.slice(i,i+3).join(" "))
             }
           }
           var singleRecord = (url.searchParams.get('singleRecord') == 'true')

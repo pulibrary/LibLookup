@@ -1,10 +1,12 @@
 import { tokenize } from './queryutils.js'
 
 const operators = {
-    'and': 0, 
     'or': 1, 
+    'and': 0, 
     'andnot': 2
 }
+
+const operatorPrecedences = ["or","and","andnot"]
 
 const indexes = {
     'keyword': 1016,
@@ -37,6 +39,7 @@ export class Z3950Query {
     config = null
 
     constructor(query, config = null, isPQF = false) {
+        console.log(query)
         this.config = config
         query = isPQF ? query : this.convertToPQF(query)
         var queryTokens = tokenize(query)
@@ -100,6 +103,7 @@ export class Z3950Query {
                         this.attributes.push({type: 1, value: 1016})
                     }
                     this.term = token.replace(/^"(.*)"$/, '$1')
+
                     if(this.term == "") {
                         this.type = "empty"
                         this.attributes = []
@@ -111,7 +115,7 @@ export class Z3950Query {
         }
     }
 
-    convertToPQF(query, precedences = ["or","and","andnot"]) {
+    convertToPQF(query, precedences = operatorPrecedences) {
         const queryTokens = tokenize(query)
 
         if(queryTokens.length == 3) {
@@ -119,8 +123,14 @@ export class Z3950Query {
             const relator = queryTokens[1]
             const searchTerm = queryTokens[2] 
             if(index == "raw") {
-                return searchTerm.replace(/^"(.*)"$/,'$1').replaceAll("\"\"","\"")
+                const rawSearch = searchTerm.replace(/^"(.*)"$/,'$1').replaceAll('""','"')
+                if(rawSearch.match(/^\(.*\)$/)) {
+                    return this.convertToPQF(rawSearch.replace(/^\((.*)\)$/,'$1'),operatorPrecedences)
+                } else {
+                    return rawSearch
+                }
             }
+            console.log(`index: ${index}, relator: ${relator}, searchTerm: ${searchTerm}`)
             var pqfString = ""
             var useAttribute = Object.hasOwn(indexes, index) ? indexes[index] : parseInt(index)
             useAttribute = (Number.isNaN(useAttribute) ? 1016 : useAttribute)
@@ -141,7 +151,7 @@ export class Z3950Query {
                 pqfString += `@attr 4=${this.config.details.defaultStructure} `
             }    
             if(index == "recno" && this.config?.details?.recnoNumeric) {
-                pqfString += searchTerm.replaceAll(/[^0-9]/g,"")
+                pqfString += searchTerm.replaceAll(/[^0-9\"]/g,"")
             } else {
                 pqfString += searchTerm
             }

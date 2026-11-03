@@ -53,7 +53,14 @@ describe('Custom Query', () => {
     const index = "subject"
     const inputQueryString = `raw = "${index}:""${subject}"""`
     const outputQueryString = `${index}:"${subject}"`
+
+    const hybridInputQueryString = `raw = "(title = ""${title}"" OR subject = ""${subject}"")" AND author = "${author}"`
+    const hybridOutputQueryString = `(Title="${title}" OR "${subject}" ) AND "${author}"`
+
     const customQuery = new CustomQuery(inputQueryString,config)
     expect(customQuery.queryString).toBe(outputQueryString);
+
+    const customQueryHybrid = new CustomQuery(hybridInputQueryString,config)
+    expect(customQueryHybrid.queryString).toBe(hybridOutputQueryString);
   });
 });

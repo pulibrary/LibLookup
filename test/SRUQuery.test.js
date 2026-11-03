@@ -20,8 +20,14 @@ describe('Alma SRU Query', () => {
 
   test('raw query', () => {
     const inputQueryString = 'raw = "alma.title == ""AWK Programming"""'
-    const almaQueryString = '(alma.title == "AWK Programming" )'
+    const almaQueryString = 'alma.title == "AWK Programming"'
+
+    const hybridQueryString = 'raw = "(recno = ""12345"" OR recno = ""67890"")" AND title = "AWK Programming"'
+    const hybridAlmaQueryString = '(rec.id = "12345" OR rec.id = "67890" ) AND alma.title = "AWK Programming"'
     const sruQuery = new SRUQuery(inputQueryString)
     expect(sruQuery.queryString).toBe(almaQueryString);
+
+    const sruHybridQuery = new SRUQuery(hybridQueryString)
+    expect(sruHybridQuery.queryString).toBe(hybridAlmaQueryString);
   });
 });

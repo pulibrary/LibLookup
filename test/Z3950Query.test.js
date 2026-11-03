@@ -1,6 +1,7 @@
 import { Z3950Query } from '../Z3950Query.js';
 
 const recno = "abcd9876543210"
+const recno2 = "abcd0123456789"
 const recnoNormalized = "9876543210"
 const title = "Z39.50: the Unsung Hero of the Space Race"
 const subject = "Apollo Missions -- Apocrpyphal Accounts"
@@ -73,7 +74,7 @@ describe('Z39.50 Query', () => {
     expect(zQueryEmpty.term).toBe("");
     expect(zQueryEmpty.type).toBe("operand");
     expect(zQueryEmpty.queryString).toBe("");
-    
+
     const zQuerySimple = new Z3950Query(inputQueryStringSimple)
     expect(zQuerySimple.term).toBe(subject);
     expect(zQuerySimple.type).toBe("operand");
@@ -122,7 +123,8 @@ describe('Z39.50 Query', () => {
   test('raw query', () => {
     const inputQueryStringSimple = `raw = "@attr 4=1 ""${title}"""`
     const inputQueryStringComplex = `raw = "@or @attr 1=4 @attr 4=1 ""${title}"" @attr 1=21 @attr 4=1 ""${subject}"""`
-     
+    const inputQueryStringHybrid = `raw = "(recno = ""${recno}"" OR recno = ""${recno2}"")" AND title = "${title}"`
+
     const zQuerySimple = new Z3950Query(inputQueryStringSimple)
     expect(zQuerySimple.term).toBe(title);
     expect(zQuerySimple.type).toBe("operand");
@@ -146,6 +148,15 @@ describe('Z39.50 Query', () => {
       {type: 1, value: 21},  
       {type: 4, value: 1}
     ]);
+
+    const zQueryHybrid = new Z3950Query(inputQueryStringHybrid) 
+    expect(zQueryHybrid.operator).toBe(0);
+    expect(zQueryHybrid.leftOperand.operator).toBe(1);
+    expect(zQueryHybrid.leftOperand.leftOperand.term).toBe(recno);
+    expect(zQueryHybrid.leftOperand.rightOperand.term).toBe(recno2);
+    expect(zQueryHybrid.rightOperand.term).toBe(title);
+    
+
   })
 
   test('invalid query', () => {

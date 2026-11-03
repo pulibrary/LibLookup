@@ -36,9 +36,14 @@ export class SRUQuery {
                 this.queryString += " "
             }
             if(index == "raw") {
-                searchTerm = searchTerm.replace(/^"(.*)"$/,"$1")
-                searchTerm = searchTerm.replaceAll('""','"')                
-                this.queryString += "(" + searchTerm + " )"
+                searchTerm = searchTerm.replace(/^"(.*)"$/,"$1")                
+                searchTerm = searchTerm.replaceAll('""','"')  
+                if(searchTerm.match(/^\(.*\)$/)) {
+                    searchTerm = searchTerm.replace(/^\((.*)\)$/,"$1")  
+                    const embeddedQuery = new SRUQuery(searchTerm)
+                    searchTerm = "(" + embeddedQuery.queryString + " )"
+                }
+                this.queryString += searchTerm
             } else {
                 const mappedIndex = Object.hasOwn(indexes,index) ? indexes[index] : index
                 this.queryString += mappedIndex + " " + relator + " " + searchTerm

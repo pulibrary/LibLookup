@@ -38,8 +38,13 @@ export class CustomQuery {
                 return
             }
             else if(index == "raw") {     
-                searchTerm = searchTerm.replace(/^"(.*)"$/,"$1")          
-                searchTerm = searchTerm.replaceAll("\"\"","\"")
+                searchTerm = searchTerm.replace(/^"(.*)"$/,"$1")        
+                searchTerm = searchTerm.replaceAll('""','"')
+                if(searchTerm.match(/^\(.*\)$/)) {
+                    searchTerm = searchTerm.replace(/^\((.*)\)$/,"$1")  
+                    const embeddedQuery = new CustomQuery(searchTerm,config)
+                    searchTerm = "(" + embeddedQuery.queryString + " )"
+                }
             }
             else if(!relator.includes('=')) {
                 searchTerm = searchTerm.replace(/^"(.*)"$/,"$1")    

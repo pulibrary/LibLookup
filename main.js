@@ -144,11 +144,16 @@ const createWindow = async () => {
             const tokens = tokenize(query)
             query = ""
             for(var i = 0; i < tokens.length;) {
+              const indexAndTerm = (i>0) ? tokens.slice(i+1,i+4).join(" ") : tokens.slice(i,i+3).join(" ")
+              var explodedTerm = explodeTerm(indexAndTerm)
+              if(indexAndTerm != explodedTerm) {
+                explodedTerm = 'raw = "(' + explodedTerm.replaceAll('"','""') + ')"'
+              }
               if(i > 0) {
-                query += " " + tokens[i] + " " +  explodeTerm(tokens.slice(i+1,i+4).join(" "))
+                query += " " + tokens[i] + " " +  explodedTerm
                 i += 4
               } else {             
-                query += explodeTerm(tokens.slice(i,i+3).join(" "))
+                query += explodedTerm
                 i += 3
               }
             }

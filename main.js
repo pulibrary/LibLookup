@@ -315,8 +315,10 @@ const createWindow = async () => {
           try {
             const catalogType = catalogs[catalog].type
             if(catalogType == "custom") {
-              customClient = new CustomClient(catalogs[catalog])
-              customClient.connect().then((success) => {
+              if(catalog != catalogID) {
+                customClient = new CustomClient(catalogs[catalog])
+              }
+              customClient.connect().then(async (success) => {
                 if(success) {
                   var calculateCount = !((catalogID == catalog) && (query == latestQuery))
                   catalogID = catalog

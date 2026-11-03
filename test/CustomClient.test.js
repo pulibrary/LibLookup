@@ -25,7 +25,8 @@ describe('Custom Client', () => {
     "resultFormat": "json", 
     "recordsField": "$.records",
     "catalogLinkUrl": catalogURL,
-    "resultCountField": "json:$.result_count"
+    "resultCountField": "json:$.result_count",
+    "throttle": 1000
   }
   const configXML = { ...config, 
     "wrappers":["json:$.xmlRecord"], 
@@ -55,28 +56,43 @@ describe('Custom Client', () => {
     records: ""
   }
   var fetchSpy
+  var timeoutSpy
+
   beforeEach(() => {
+    jest.useFakeTimers();
     fetchSpy = jest.spyOn(global, 'fetch');
+    timeoutSpy = jest.spyOn(global, 'setTimeout');
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     fetchSpy.mockRestore();
+    timeoutSpy.mockRestore();
   });
 
-  test('JSON response', async () => {
+  test('JSON response (with throttling)', async () => {
     fetchSpy.mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify(mockDataJSON)      
+      text: async () => JSON.stringify(mockDataJSON)  
     });
+    timeoutSpy.mockImplementation(async (ms) => jest.advanceTimersByTime(ms));
     const client = new CustomClient(configJSON)
     expect(client.config.connectUrl).toBe(connectURL)
+    expect(await client.connect()).toBe(true)
+    //reconnect immediately
+    expect (await client.connect()).toBe(true)
+    //wait and reconnect
+    jest.advanceTimersByTime(1500)
     expect(await client.connect()).toBe(true)
 
     const queryResponse = await client.query(inputQuery)
     expect(queryResponse.numberOfRecords).toBe(result_count)
     expect(queryResponse.records[0].title).toBe(title)
     expect(client.getCatalogLink()).toBe(catalogURL + outputQuery)
+
+    //reconnect
+
   });
 
   test('XML wrapped in JSON', async () => {
@@ -87,6 +103,8 @@ describe('Custom Client', () => {
     });
     const client = new CustomClient(configXML)
     expect(client.config.connectUrl).toBe(connectURL)
+    expect(await client.connect()).toBe(true)
+    //reconnect (no throttle)
     expect(await client.connect()).toBe(true)
 
     const queryResponse = await client.query(inputQuery)

@@ -2,20 +2,36 @@ import { CustomQuery } from './CustomQuery.js'
 import { DOMParser } from '@xmldom/xmldom'
 import * as xpath from 'xpath'
 import { JSONPath } from 'jsonpath-plus'
+import { setTimeout } from 'node:timers/promises';
 
 
 
 export class CustomClient {
 
     config = {}
+    connected = false
     catalogLink = ""
+    timestamp = 0
     constructor(config) {
         this.config = config
     }
 
     async connect() {
+        if(this.connected) {
+            if(this.config.throttle) {
+                const elapsed = Date.now() - this.timestamp
+                console.log("Elapsed time since last query: " + elapsed + "ms")
+                if(elapsed < this.config.throttle) {
+                    await setTimeout(this.config.throttle - elapsed)
+                }
+            }
+            this.timestamp = Date.now()
+            return true
+        }
+        this.timestamp = Date.now()
         const response = await fetch(this.config.connectUrl)
         console.log("Connecting to custom catalog at " + this.config.connectUrl)
+        this.connected = true
         return response.ok
     }
 

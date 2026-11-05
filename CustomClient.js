@@ -20,7 +20,6 @@ export class CustomClient {
         if(this.connected) {
             if(this.config.throttle) {
                 const elapsed = Date.now() - this.timestamp
-                console.log("Elapsed time since last query: " + elapsed + "ms")
                 if(elapsed < this.config.throttle) {
                     await setTimeout(this.config.throttle - elapsed)
                 }
@@ -50,22 +49,7 @@ export class CustomClient {
             } else {
                 this.catalogLink += encodeURIComponent(customQuery.queryString)
             }
-        } 
-        if(getTotalCount) {
-            var countUrl = this.config.resultCountBaseUrl 
-            if(customQuery.isCatalogLink) {
-                countUrl = countUrl.replace(/[^?]*$/,"") + customQuery.queryString
-            } else {
-                countUrl += encodeURIComponent(customQuery.queryString) 
-            }
-            countUrl += `&${this.config.pageParam}=1&${this.config.maxRecsParam}=1`            
-            console.log(countUrl)
-            
-            const countResponse = await fetch(countUrl)
-            const countText = await countResponse.text()
-            const countPath = this.config.resultCountField.replace(/^json:/, '')                
-            totalRecords = JSONPath({path: countPath, json: JSON.parse(countText)})[0]   
-        }
+        }         
 
         var pageno = Math.ceil(startRecord / maximumRecords)
         var queryUrl = this.config.recordsBaseUrl 
@@ -82,12 +66,31 @@ export class CustomClient {
 
         if(!recordsResponse || !recordsResponse.ok) {
             return {numberOfRecords: 0, records: []}
-        }
-
+        }        
 
         var recordsText = await recordsResponse.text()
         var recordsArray = []
-        const parser = new DOMParser();
+        const parser = new DOMParser();      
+
+        var countUrl = this.config.resultCountBaseUrl 
+        if(customQuery.isCatalogLink) {
+            countUrl = countUrl.replace(/[^?]*$/,"") + customQuery.queryString
+        } else {
+            countUrl += encodeURIComponent(customQuery.queryString) 
+        }
+        countUrl += `&${this.config.pageParam}=1&${this.config.maxRecsParam}=1` 
+        
+        if(this.config.resultFormat == 'json') {
+            const countPath = this.config.resultCountField.replace(/^json:/, '')  
+            totalRecords = JSONPath({path: countPath, json: JSON.parse(recordsText)})[0]   
+        } else {
+            if(getTotalCount) {
+                const countResponse = await fetch(countUrl)
+                const countText = await countResponse.text()
+                const countPath = this.config.resultCountField.replace(/^json:/, '')                
+                totalRecords = JSONPath({path: countPath, json: JSON.parse(countText)})[0]   
+            }
+        }
 
         if(Object.hasOwn(this.config, 'recordsField')) {
             const recordsPath = this.config.recordsField.replace(/^json:/, '') 
@@ -109,7 +112,7 @@ export class CustomClient {
         }
         if(this.config.resultFormat == 'json') {
             return {numberOfRecords: totalRecords, records: recordsArray}
-        } else { //xml
+        } else { //xml            
             recordsText = recordsText.replaceAll(/<\?xml[^>]*\?>/gs,"")
             recordsText = `<collection>${recordsText}</collection>`
             const responseXML = parser.parseFromString(recordsText, "text/xml");

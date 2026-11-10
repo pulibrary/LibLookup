@@ -1,7 +1,7 @@
 {
 "WorldCat": [
     {"name":"Keyword", "code":"1016"},
-	{"name":"Access Method", "code":"1209"},
+	{"name":"Access Method", "code":"1209", "relators": ["all","="]},
 	{"name":"Access Restrictions", "code":"5068"},
 	{"name":"Action Note", "code":"5016"},
 	{"name":"Auction House Name (SCIPIO only)", "code":"5060"},

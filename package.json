@@ -44,7 +44,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "tventimi",
+        "owner": "pulibrary",
         "repo": "LibLookup"
       }
     ],

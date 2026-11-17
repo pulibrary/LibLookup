@@ -95,8 +95,8 @@ td:has(.closebtn) {
 }
 
 @media print {
-    .sidebar, #sidebarCollapsed, #resultCount, #download, #navigation, .viewlink {
-        display: none;
+    #searchForm, #sidebarCollapsed, #resultCount, #download, #navigation, .viewlink {
+        display: none !important
     }
      
     #resultsPanel {

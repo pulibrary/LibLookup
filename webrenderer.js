@@ -13,6 +13,7 @@ function populateForm() {
     })
     return
   } 
+  var collapse = false
   //else if there are URL params  
   urlParams.forEach((value, key) => {
     if(key === "catalog") {
@@ -43,8 +44,15 @@ function populateForm() {
         }
         document.getElementById("deleteResultButton").disabled = false
         document.getElementById("clearResultsButton").disabled = false
-    } 
+    } else if(key === "singleRecord" && value == "true") {
+        collapse = true
+    }
   });
+  if(collapse) {
+    closeSidebar()
+  } else {
+    openSidebar()
+  }
 }
 
 document.addEventListener('DOMContentLoaded',function() {
@@ -70,6 +78,13 @@ document.addEventListener('DOMContentLoaded',function() {
     document.getElementById("submit").addEventListener('click', function() {
         document.getElementById("catalogLink").innerHTML = "Searching..."
     })
+    document.getElementById("openSidebarButton").addEventListener('click', () => {
+        openSidebar();
+    })
+
+    document.getElementById("closeSidebarButton").addEventListener('click', () => {
+        closeSidebar();
+    })
 })
 
 
@@ -86,6 +101,15 @@ queryForm.addEventListener('submit', function(event) {
     })
 });
 
+function closeSidebar() {
+    document.getElementById("sidebarCollapsed").style.display = "block";
+    document.getElementById("searchForm").style.display = "none";
+}
+
+function openSidebar() {
+    document.getElementById("sidebarCollapsed").style.display = "none";
+    document.getElementById("searchForm").style.display = "block";
+}
 
 function tokenize(str) {
     str = str.replaceAll("\"\"","{quote}")

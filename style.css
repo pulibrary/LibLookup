@@ -16,6 +16,7 @@ body {
 .marc {
     border-collapse: collapse;
     width: 100%;
+    
 }
 
 .marc td,th {
@@ -26,7 +27,47 @@ body {
 .sidebar {
     width: 275px;
     flex-shrink: 0;
-    overflow-y: auto
+    overflow-y: auto;
+}
+
+#sidebarCollapsed {
+    display: none;
+}
+
+#appTitle {
+    width: 100%;
+}
+
+td:has(.closebtn) {
+    vertical-align: top;
+    text-align: right;
+    text-decoration: none;
+    color:inherit;
+}
+
+.closebtn {
+    font-size: 30px;
+    cursor: pointer;
+    color: white;
+    padding: 10px 15px;
+    text-decoration: none;
+    border: none;
+}
+
+.closebtn:hover {
+  background-color: #444;
+}
+
+.openbtn {
+  font-size: 30px;
+  cursor: pointer;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+}
+
+.openbtn:hover {
+  background-color: #444;
 }
 
 .container {
@@ -44,10 +85,6 @@ body {
     overflow-y: auto;
 }
 
-#appTitle tr {
-    vertical-align: bottom;
-}
-
 .configButton {
     padding: 5px;
     font-size: 16px
@@ -58,10 +95,10 @@ body {
 }
 
 @media print {
-    .sidebar, #resultCount, #download, #navigation, .viewlink {
+    .sidebar, #sidebarCollapsed, #resultCount, #download, #navigation, .viewlink {
         display: none;
     }
-    
+     
     #resultsPanel {
         margin-left: 0px
     }

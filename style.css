@@ -48,7 +48,7 @@ td:has(.closebtn) {
 .closebtn {
     font-size: 30px;
     cursor: pointer;
-    color: white;
+    color: inherit;
     padding: 10px 15px;
     text-decoration: none;
     border: none;
@@ -61,7 +61,7 @@ td:has(.closebtn) {
 .openbtn {
   font-size: 30px;
   cursor: pointer;
-  color: white;
+  color: inherit;
   padding: 10px 15px;
   border: none;
 }

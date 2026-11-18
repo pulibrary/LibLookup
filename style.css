@@ -96,10 +96,31 @@ td:has(.closebtn) {
 
 @media print {
     #searchForm, #sidebarCollapsed, #resultCount, #download, #navigation, .viewlink {
-        display: none !important
+        display: none !important;
     }
      
+    .container {
+        margin-left: 0px !important;  
+        padding-left: 0px !important;
+        display: block !important;      
+    }
+
     #resultsPanel {
-        margin-left: 0px
+        margin-left: 0px !important;  
+        padding-left: 0px !important;
+    }
+
+    html, body, .main-wrapper {
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+    * {
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+    table, tr, img, .card {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
     }
 }

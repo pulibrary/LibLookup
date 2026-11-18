@@ -63,6 +63,7 @@ td:has(.closebtn) {
   cursor: pointer;
   color: inherit;
   padding: 10px 15px;
+  text-decoration: none;
   border: none;
 }
 

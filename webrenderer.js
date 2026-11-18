@@ -152,8 +152,7 @@ function download(format) {
     var queryBatch = []
     const increment = 50
     for(var i = 1; i <= resultCount; i += increment) {
-        var maxRecs = (i+increment <= resultCount) ? increment : ((resultCount - i + 1))
-        queryBatch.push(`${origin}/${queryString}&start=${i}&maxRecs=${maxRecs}&format=${format}`)
+        queryBatch.push(`${origin}/${queryString}&start=${i}&maxRecs=${increment}&format=${format}`)
     }
     
     var readyForNext = true

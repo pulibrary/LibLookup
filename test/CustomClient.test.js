@@ -111,6 +111,15 @@ describe('Custom Client', () => {
     expect(queryResponse.numberOfRecords).toBe(result_count)
     expect(queryResponse.records[0]).toBe(xmlRecord)
 
+    //empty results
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,  
+      text: async () => '{"result_count":0}'
+    });
+    const queryResponseEmpty = await client.query(inputQuery)
+    expect(queryResponseEmpty.numberOfRecords).toBe(0)
+    expect(queryResponseEmpty.records.length).toBe(0)
     
   })
 

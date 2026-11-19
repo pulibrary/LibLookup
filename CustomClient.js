@@ -102,7 +102,10 @@ export class CustomClient {
                 for(var i = 0; i < this.config.wrappers.length; i++) {
                     var wrapper = this.config.wrappers[i]
                     const wrapperPath = wrapper.replace(/^json:/, '')  
-                    recordsArray = recordsArray.map((rec) => { return JSONPath({options:{wrap:false},path:wrapperPath,json:rec})[0] })        
+                    recordsArray = recordsArray.map((rec) => { 
+                        const wrappedRecs = JSONPath({options:{wrap:false},path:wrapperPath,json:rec})
+                        return (wrappedRecs) ? wrappedRecs[0] : []
+                    })        
                 }
             }
             recordsText = recordsArray.join("\n")

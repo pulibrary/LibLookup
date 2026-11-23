@@ -654,7 +654,7 @@ function renderRecords(records,format = 'html') {
     rendered += escapeHtml(csv.stringify(records.map(row => row.map(cell => decode(cell)))))
   } else if (format == 'html') {
     records = records.map(row => row.map(cell => decode(cell)))
-    if(records[0].length > 6) {
+    if(records[0].length > 8) {
       for(var i = 1; i < records.length; i++) {
         rendered += `<div class='viewlink'><a href='index.html?singleRecord=true&catalog=${catalogID}` + 
               `&q=recno+%3D+%22${records[i][0]}%22&displayFields=${displayFields.join("|")}'>View Full Record</a></div>`
